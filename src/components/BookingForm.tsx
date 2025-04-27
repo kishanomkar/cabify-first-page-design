@@ -1,5 +1,5 @@
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +11,8 @@ const BookingForm = () => {
   const formRef = useRef(null);
   const headingRef = useRef(null);
   const descriptionRef = useRef(null);
+  const [location, setLocation] = useState("");
+  const [destination, setDestination] = useState("");
   
   useEffect(() => {
     // Animation for the form elements
@@ -50,10 +52,7 @@ const BookingForm = () => {
   };
   
   const handleRideElectric = () => {
-    const location = document.querySelector<HTMLInputElement>("input[placeholder='Enter Location']");
-    const destination = document.querySelector<HTMLInputElement>("input[placeholder='Enter destination']");
-    
-    if (!location?.value || !destination?.value) {
+    if (!location || !destination) {
       toast({
         title: "Missing information",
         description: "Please enter both location and destination",
@@ -96,6 +95,8 @@ const BookingForm = () => {
           type="text"
           placeholder="Enter Location"
           className="w-full pl-10 pr-4 py-3 rounded-lg border border-black/20 bg-white/80 backdrop-blur-sm"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
         />
       </div>
       
@@ -105,6 +106,8 @@ const BookingForm = () => {
           type="text"
           placeholder="Enter destination"
           className="w-full pl-10 pr-4 py-3 rounded-lg border border-black/20 bg-white/80 backdrop-blur-sm"
+          value={destination}
+          onChange={(e) => setDestination(e.target.value)}
         />
       </div>
       

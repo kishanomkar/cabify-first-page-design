@@ -38,8 +38,8 @@ const SecondaryNav = () => {
           <h2 className="text-xl font-bold text-black">Ride</h2>
           <div className="flex gap-6 overflow-x-auto pb-1 hide-scrollbar">
             <Link 
-              to="/request" 
-              className={`secondary-nav-link hover:text-black ${isActive("/request")}`}
+              to="/" 
+              className={`secondary-nav-link hover:text-black ${isActive("/")}`}
             >
               Request a ride
             </Link>
