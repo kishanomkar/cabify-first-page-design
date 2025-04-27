@@ -1,167 +1,101 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
-import { toast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import SecondaryNav from "@/components/SecondaryNav";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, Clock, Shield, Car } from "lucide-react";
-
-const RideOption = ({ type, basePrice, image, perKm, description, isPopular }) => {
-  const cardRef = useRef(null);
-  const [selected, setSelected] = useState(false);
-  
-  useEffect(() => {
-    gsap.fromTo(
-      cardRef.current,
-      { y: 50, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.8, ease: "power3.out", delay: type === "Economy" ? 0.2 : type === "Premium" ? 0.4 : type === "Carpool" ? 0.6 : 0.8 }
-    );
-  }, [type]);
-  
-  const handleSelect = () => {
-    setSelected(!selected);
-    if (!selected) {
-      toast({
-        title: `${type} Selected`,
-        description: `You've selected the ${type} option for your ride.`,
-        duration: 3000,
-      });
-    }
-  };
-  
-  return (
-    <Card 
-      ref={cardRef} 
-      className={`relative overflow-hidden transition-all duration-300 transform hover:-translate-y-2 ${
-        selected ? "border-2 border-[#004D00]" : ""
-      }`}
-    >
-      {isPopular && (
-        <div className="absolute top-0 right-0 bg-[#004D00] text-white px-4 py-1 text-sm">
-          Popular
-        </div>
-      )}
-      <CardContent className="p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-2xl font-bold">{type}</h3>
-          <div className="text-xl font-bold text-[#004D00]">${basePrice}</div>
-        </div>
-        
-        <div className="h-40 overflow-hidden rounded-lg bg-[#90EE9020] mb-4 flex items-center justify-center">
-          <img src={image} alt={type} className="h-full object-contain" />
-        </div>
-        
-        <div className="space-y-2 mb-6">
-          <div className="flex items-center text-sm">
-            <Car className="w-4 h-4 mr-2" />
-            <span>{description}</span>
-          </div>
-          <div className="flex items-center text-sm">
-            <Clock className="w-4 h-4 mr-2" />
-            <span>Arrives in 3-5 min</span>
-          </div>
-          <div className="flex items-center text-sm">
-            <span className="font-bold">${perKm}/km</span>
-            <span className="mx-2">•</span>
-            <span>Zero emissions</span>
-          </div>
-        </div>
-        
-        <Button 
-          onClick={handleSelect}
-          className={`w-full ${selected ? "bg-[#004D00]" : "bg-black"} hover:bg-[#003300] text-white`}
-        >
-          {selected ? "Selected" : "Select Ride"}
-        </Button>
-      </CardContent>
-    </Card>
-  );
-};
+import { MapPin, Clock, Shield, Car } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { toast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 const Prices = () => {
+  const navigate = useNavigate();
   const mainRef = useRef(null);
-  const titleRef = useRef(null);
-  const descriptionRef = useRef(null);
-  const locationInputRef = useRef(null);
-  const destinationInputRef = useRef(null);
-  const estimateRef = useRef(null);
+  const [pickup, setPickup] = useState("");
+  const [destination, setDestination] = useState("");
+  const [distance, setDistance] = useState(0);
+  const [selectedRide, setSelectedRide] = useState("go_electric");
   
-  const [estimatedDistance, setEstimatedDistance] = useState(5.2);
-  const [estimatedTime, setEstimatedTime] = useState(15);
+  const rideTypes = [
+    { id: "go_electric", name: "Go Electric", basePrice: 35, perKm: 8, icon: <Car className="h-5 w-5" /> },
+    { id: "go_premium", name: "Premium", basePrice: 75, perKm: 15, icon: <Shield className="h-5 w-5" /> },
+    { id: "go_shared", name: "Shared", basePrice: 25, perKm: 6, icon: <Clock className="h-5 w-5" /> },
+  ];
   
   useEffect(() => {
-    // Page entrance animation
-    const tl = gsap.timeline();
+    // Set a random sample distance when component mounts
+    setDistance(Math.floor(Math.random() * 15) + 3);
     
-    tl.from(titleRef.current, {
-      y: -50,
+    // Page animations
+    gsap.from(mainRef.current, {
       opacity: 0,
-      duration: 0.8,
-      ease: "power3.out"
-    })
-    .from(descriptionRef.current, {
-      y: -20,
-      opacity: 0,
-      duration: 0.6,
-      ease: "power3.out"
-    }, "-=0.4")
-    .from([locationInputRef.current, destinationInputRef.current], {
       y: 20,
-      opacity: 0,
-      stagger: 0.2,
-      duration: 0.6,
-      ease: "power3.out"
-    }, "-=0.3")
-    .from(estimateRef.current, {
-      scale: 0.9,
-      opacity: 0,
-      duration: 0.6,
-      ease: "power3.out"
-    }, "-=0.2");
+      duration: 0.8,
+      ease: "power2.out"
+    });
     
-    // Special animation for the cards will be handled in the RideOption component
+    gsap.from(".pricing-card", {
+      opacity: 0,
+      y: 30,
+      duration: 0.6,
+      stagger: 0.1,
+      delay: 0.3,
+      ease: "back.out(1.2)"
+    });
     
     // Scroll to top
     window.scrollTo(0, 0);
   }, []);
   
-  const calculateRide = () => {
-    const location = locationInputRef.current.value;
-    const destination = destinationInputRef.current.value;
-    
-    if (!location || !destination) {
+  // Calculate fare based on ride type and distance
+  const calculateFare = (rideType) => {
+    const ride = rideTypes.find(r => r.id === rideType);
+    return ride.basePrice + (ride.perKm * distance);
+  };
+  
+  const handleEstimateFare = () => {
+    if (!pickup || !destination) {
       toast({
         title: "Missing information",
-        description: "Please enter both pickup location and destination",
+        description: "Please enter both pickup and destination",
         variant: "destructive",
       });
       return;
     }
     
-    // Simulate calculating a new estimate
-    const newDistance = parseFloat((Math.random() * 10 + 2).toFixed(1));
-    const newTime = Math.floor(Math.random() * 20 + 10);
-    
-    // Animate the changes
-    gsap.to(estimateRef.current, {
-      scale: 1.05,
-      duration: 0.3,
-      ease: "power2.out",
-      yoyo: true,
-      repeat: 1,
-      onComplete: () => {
-        setEstimatedDistance(newDistance);
-        setEstimatedTime(newTime);
-      }
-    });
+    // Simulate fare calculation with new random distance
+    const newDistance = Math.floor(Math.random() * 15) + 3;
+    setDistance(newDistance);
     
     toast({
-      title: "Estimate updated",
-      description: `New route calculated for your journey`,
+      title: "Fare Estimated",
+      description: `Distance: ${newDistance} km`,
+      duration: 2000,
+    });
+  };
+  
+  const handleBookNow = () => {
+    if (!pickup || !destination) {
+      toast({
+        title: "Missing information",
+        description: "Please enter pickup and destination",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const selectedRideData = rideTypes.find(r => r.id === selectedRide);
+    
+    toast({
+      title: "Booking Ride",
+      description: `${selectedRideData.name} for ₹${calculateFare(selectedRide)}`,
       duration: 3000,
     });
+    
+    setTimeout(() => {
+      navigate("/");
+    }, 2000);
   };
 
   return (
@@ -169,154 +103,110 @@ const Prices = () => {
       <Navbar />
       <SecondaryNav />
       
-      <main ref={mainRef} className="flex-1 max-w-7xl mx-auto w-full px-6 py-12">
-        <h1 
-          ref={titleRef} 
-          className="text-5xl font-bold text-black mb-4 text-center"
-        >
-          Electric Ride Prices
-        </h1>
-        <p 
-          ref={descriptionRef} 
-          className="text-lg text-black/80 mb-8 text-center max-w-2xl mx-auto"
-        >
-          Choose the perfect ride option that fits your needs. All electric, zero emissions,
-          and competitively priced.
-        </p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-          <div className="space-y-4">
-            <div className="relative">
-              <input
-                ref={locationInputRef}
-                type="text"
-                placeholder="Enter pickup location"
-                className="w-full pl-4 pr-4 py-3 rounded-lg border border-black/20 bg-white/80 backdrop-blur-sm"
-                defaultValue="Current Location"
-              />
-            </div>
-            
-            <div className="relative">
-              <input
-                ref={destinationInputRef}
-                type="text"
-                placeholder="Enter destination"
-                className="w-full pl-4 pr-4 py-3 rounded-lg border border-black/20 bg-white/80 backdrop-blur-sm"
-              />
+      <main className="flex-1" ref={mainRef}>
+        <div className="max-w-7xl mx-auto w-full px-6 py-12">
+          <h1 className="text-4xl font-bold mb-8 text-center">Fare Estimator</h1>
+          
+          <div className="bg-white rounded-xl p-6 shadow-lg max-w-3xl mx-auto mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                <Input
+                  placeholder="Pickup location"
+                  className="pl-10"
+                  value={pickup}
+                  onChange={(e) => setPickup(e.target.value)}
+                />
+              </div>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                <Input
+                  placeholder="Destination"
+                  className="pl-10"
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                />
+              </div>
             </div>
             
             <Button 
-              onClick={calculateRide}
-              className="bg-[#004D00] hover:bg-[#003300] text-white w-full"
+              className="w-full bg-black text-white hover:bg-gray-800"
+              onClick={handleEstimateFare}
             >
-              Calculate Ride
+              Estimate Fare
             </Button>
           </div>
           
-          <div 
-            ref={estimateRef} 
-            className="bg-white p-6 rounded-lg shadow-md"
-          >
-            <h3 className="text-xl font-semibold mb-4">Ride Estimate</h3>
-            
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span>Estimated Distance:</span>
-                <span className="font-bold">{estimatedDistance} km</span>
-              </div>
+          {distance > 0 && (
+            <div className="space-y-4 max-w-3xl mx-auto">
+              <h2 className="text-2xl font-semibold mb-6">Estimated Prices for {distance} km</h2>
               
-              <div className="flex justify-between">
-                <span>Estimated Time:</span>
-                <span className="font-bold">{estimatedTime} minutes</span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span>Pickup Window:</span>
-                <span className="font-bold">3-5 minutes</span>
-              </div>
-              
-              <div className="border-t pt-4 mt-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Shield className="w-5 h-5 mr-2 text-[#004D00]" />
-                    <span className="text-sm">Electric rides save ~{Math.round(estimatedDistance * 150)}g of CO₂</span>
+              {rideTypes.map((rideType) => {
+                const fare = calculateFare(rideType.id);
+                const isSelected = selectedRide === rideType.id;
+                
+                return (
+                  <div 
+                    key={rideType.id}
+                    className={`pricing-card flex justify-between items-center p-4 rounded-lg transition-all cursor-pointer ${
+                      isSelected 
+                        ? "bg-[#E7FFE7] border-2 border-[#008000]" 
+                        : "bg-white border border-gray-200"
+                    }`}
+                    onClick={() => setSelectedRide(rideType.id)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        isSelected ? "bg-[#008000] text-white" : "bg-[#90EE90]"
+                      }`}>
+                        {rideType.icon}
+                      </div>
+                      <div>
+                        <h3 className="font-medium">{rideType.name}</h3>
+                        <p className="text-sm text-gray-500">Estimated arrival: {Math.floor(Math.random() * 5) + 2} min</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold">₹{fare}</p>
+                      <p className="text-sm text-gray-500">Base fare: ₹{rideType.basePrice}</p>
+                    </div>
                   </div>
-                  <span className="text-[#004D00] font-bold">Eco-friendly</span>
+                );
+              })}
+              
+              <Button 
+                className="w-full bg-[#004D00] hover:bg-[#003300] text-white mt-6"
+                onClick={handleBookNow}
+              >
+                Book Now
+              </Button>
+            </div>
+          )}
+          
+          <div className="mt-16 bg-white rounded-xl p-8 max-w-3xl mx-auto">
+            <h2 className="text-2xl font-bold mb-4">How our pricing works</h2>
+            <div className="space-y-4">
+              <div className="flex gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#90EE90] flex items-center justify-center flex-shrink-0">1</div>
+                <div>
+                  <h3 className="font-semibold">Base Fare</h3>
+                  <p className="text-gray-600">Standard charge that is applied to every ride</p>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-        
-        <h2 className="text-3xl font-bold text-black mb-8 text-center">Available Ride Options</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <RideOption 
-            type="Economy" 
-            basePrice={5.99} 
-            image="/lovable-uploads/a35d0c0d-6e1f-4f4b-aba7-e59438cda13c.png"
-            description="Standard electric ride for up to 3 people" 
-            perKm={1.20}
-            isPopular={true}
-          />
-          
-          <RideOption 
-            type="Premium" 
-            basePrice={9.99} 
-            image="/lovable-uploads/d0744fa4-e27e-4112-ae2f-503ba7fc0fa5.png"
-            description="Luxury electric ride with extra comfort" 
-            perKm={1.80}
-          />
-          
-          <RideOption 
-            type="Carpool" 
-            basePrice={3.99} 
-            image="/lovable-uploads/27425374-f7f1-4b5e-b682-a0e11feed857.png"
-            description="Share your ride and save money" 
-            perKm={0.90}
-          />
-          
-          <RideOption 
-            type="SUV" 
-            basePrice={12.99} 
-            image="/lovable-uploads/b3a457bb-4ffb-4512-a05a-1f5ca55d0135.png"
-            description="Spacious ride for up to 6 people" 
-            perKm={2.10}
-          />
-        </div>
-        
-        <div className="mt-16 bg-white rounded-lg p-6 shadow-lg">
-          <h3 className="text-2xl font-bold mb-4">How We Calculate Your Fare</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <Calendar className="w-5 h-5 mr-2 text-[#004D00]" />
-                <h4 className="font-semibold">Base Fare</h4>
+              <div className="flex gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#90EE90] flex items-center justify-center flex-shrink-0">2</div>
+                <div>
+                  <h3 className="font-semibold">Per Kilometer Rate</h3>
+                  <p className="text-gray-600">Additional cost based on the distance traveled</p>
+                </div>
               </div>
-              <p className="text-sm text-gray-600">
-                Every ride starts with a base fare that covers the initial pickup
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <Clock className="w-5 h-5 mr-2 text-[#004D00]" />
-                <h4 className="font-semibold">Time & Distance</h4>
+              <div className="flex gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#90EE90] flex items-center justify-center flex-shrink-0">3</div>
+                <div>
+                  <h3 className="font-semibold">Demand Pricing</h3>
+                  <p className="text-gray-600">Prices may vary based on demand and availability</p>
+                </div>
               </div>
-              <p className="text-sm text-gray-600">
-                We add time and distance traveled to calculate the final fare
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <Shield className="w-5 h-5 mr-2 text-[#004D00]" />
-                <h4 className="font-semibold">Green Discount</h4>
-              </div>
-              <p className="text-sm text-gray-600">
-                Electric rides earn reward points that can reduce future fares
-              </p>
             </div>
           </div>
         </div>
